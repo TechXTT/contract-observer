@@ -13,22 +13,18 @@ import (
 
 func main() {
 
-	wssclient := websocket.InitWsClient()
+	wsclient := websocket.InitWsClient()
 
 	fmt.Println("network id: ", func() string {
-		network, err := wssclient.NetworkID(context.Background())
+		network, err := wsclient.NetworkID(context.Background())
 		if err != nil {
 			panic(err)
 		}
 		return network.String()
 	}())
 
-	go func() {
-		contractAddress := common.HexToAddress(os.Getenv("CONTRACT_ADDRESS"))
-		events.RunSubscription(wssclient, contractAddress, "./pkg/events/abi.json")
-		fmt.Println("Subscription started")
-	}()
-
-	select {}
+	contractAddress := common.HexToAddress(os.Getenv("CONTRACT_ADDRESS"))
+	events.RunSubscription(wsclient, contractAddress, "./pkg/events/abi.json")
+	fmt.Println("Subscription started")
 
 }
