@@ -10,14 +10,13 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type LockEvent struct {
-	AssetID     uint16
-	Token       common.Address
 	Amount      *big.Int
 	User        common.Address
 	TargetChain *big.Int
@@ -47,21 +46,6 @@ func DecodeEvent(contractABI abi.ABI, vLog types.Log) (LockEvent, error) {
 		return LockEvent{}, err
 	}
 
-	fmt.Println("lockEventMap: ", lockEventMap)
-
-	//parse map to struct
-	assetID, ok := lockEventMap["assetID"].(uint16)
-	if !ok {
-		assetID = 0
-		fmt.Println("Error parsing assetID")
-	}
-
-	token, ok := lockEventMap["token"].(common.Address)
-	if !ok {
-		token = common.HexToAddress("0x0")
-		fmt.Println("Error parsing token")
-	}
-
 	amount, ok := lockEventMap["amount"].(*big.Int)
 	if !ok {
 		amount = big.NewInt(0)
@@ -78,8 +62,6 @@ func DecodeEvent(contractABI abi.ABI, vLog types.Log) (LockEvent, error) {
 	}
 
 	lockEvent := LockEvent{
-		AssetID:     assetID,
-		Token:       token,
 		Amount:      amount,
 		User:        user,
 		TargetChain: targetChain,
@@ -111,17 +93,12 @@ func RunSubscription(client *ethclient.Client, contractAddress common.Address, c
 	}
 	defer subscription.Unsubscribe()
 
-	// boundContract := bind.NewBoundContract(contractAddress, contractABI, client, client, client)
+	boundContract := bind.NewBoundContract(contractAddress, contractABI, client, client, client)
 
-	// callOpts := bind.CallOpts{
-	// 	Pending: true,
-	// 	From:    common.HexToAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"),
-	// }
-
-	// err = boundContract.Call(&callOpts, nil, "lock", assetID, amount, targetChain)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	callOpts := bind.CallOpts{
+		Pending: true,
+		From:    common.HexToAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"),
+	}
 
 	for {
 		select {
@@ -136,19 +113,24 @@ func RunSubscription(client *ethclient.Client, contractAddress common.Address, c
 			fmt.Println("----------------------------------------")
 			txHash := vLog.TxHash
 
-			sourceChain := new(big.Int)
-			sourceChain.SetString(vLog.Topics[1].Hex(), 0)
+			assetID := new(big.Int)
+			assetID.SetString(vLog.Topics[1].Hex(), 0)
+
+			sourceChain, err := client.NetworkID(context.Background())
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			fmt.Println("txHash: ", txHash.Hex())
 			fmt.Println("executor: ", data.User.Hex())
 			fmt.Println("amount:", data.Amount)
-			fmt.Println("assetID: ", data.AssetID)
-			fmt.Println("sourceChain: ", sourceChain)
+			fmt.Println("assetID: ", assetID)
+			fmt.Println("sourceChain: ", sourceChain.String())
 
-			// err = boundContract.Call(&callOpts, nil, "vote", txHash, data.User, data.Amount, data.AssetID, sourceChain)
-			// if err != nil {
-			// 	log.Fatal(err)
-			// }
+			err = boundContract.Call(&callOpts, nil, "vote", txHash, data.User, data.Amount, assetID, sourceChain)
+			if err != nil {
+				log.Fatal(err)
+			}
 			fmt.Println("Vote successful!")
 		}
 	}
