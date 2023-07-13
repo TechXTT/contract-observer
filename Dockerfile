@@ -11,7 +11,7 @@ COPY . /app
 RUN apk add --no-cache git
 
 # Build the Go application
-RUN go build -o cmd/main cmd/main.go
+RUN go build -o main cmd/main.go
 
 # Run the application when the container starts
 CMD ["./main"]
