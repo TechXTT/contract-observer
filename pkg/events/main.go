@@ -97,7 +97,7 @@ func RunSubscription(client *ethclient.Client, contractAddress common.Address, c
 
 	callOpts := bind.CallOpts{
 		Pending: true,
-		From:    common.HexToAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"),
+		From:    common.HexToAddress(os.Getenv("OBSERVER_ADDRESS")),
 	}
 
 	for {
