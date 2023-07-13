@@ -1,8 +1,15 @@
 version: '3'
 
 services:
-  app:
+  app1:
     image: techxtt/contract-observer:2.0.0
     deploy:
-      replicas: 3
-      
+      replicas: 1
+  app2:
+    image: techxtt/contract-observer:2.0.0
+    deploy:
+      replicas: 1
+  app3:
+    image: techxtt/contract-observer:2.0.0
+    deploy:
+      replicas: 1
