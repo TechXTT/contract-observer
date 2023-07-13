@@ -48,17 +48,17 @@ func DecodeEvent(contractABI abi.ABI, vLog types.Log) (LockEvent, error) {
 
 	amount, ok := lockEventMap["amount"].(*big.Int)
 	if !ok {
-		amount = big.NewInt(0)
+		return LockEvent{}, err
 	}
 
 	user, ok := lockEventMap["user"].(common.Address)
 	if !ok {
-		user = common.HexToAddress("0x0")
+		return LockEvent{}, err
 	}
 
 	targetChain, ok := lockEventMap["targetChain"].(*big.Int)
 	if !ok {
-		targetChain = big.NewInt(0)
+		return LockEvent{}, err
 	}
 
 	lockEvent := LockEvent{
@@ -108,6 +108,7 @@ func RunSubscription(client *ethclient.Client, contractAddress common.Address, c
 			data, err := DecodeEvent(contractABI, vLog)
 			if err != nil {
 				log.Fatal(err)
+				continue
 			}
 
 			fmt.Println("----------------------------------------")
@@ -119,6 +120,7 @@ func RunSubscription(client *ethclient.Client, contractAddress common.Address, c
 			sourceChain, err := client.NetworkID(context.Background())
 			if err != nil {
 				log.Fatal(err)
+				continue
 			}
 
 			fmt.Println("txHash: ", txHash.Hex())
