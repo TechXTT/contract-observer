@@ -1,12 +1,17 @@
+# Use an official Golang runtime as a parent image
 FROM golang:1.20-alpine
 
+# Set the working directory to /app
 WORKDIR /app
 
-COPY go.mod go.sum ./
-RUN go mod download
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-COPY . .
+# Install any dependencies required by your application
+RUN apk add --no-cache git
 
-RUN go build -o /app/main cmd/main.go
+# Build the Go application
+RUN go build -o cmd/main cmd/main.go
 
-CMD ["/app/main"]
+# Run the application when the container starts
+CMD ["./main"]
