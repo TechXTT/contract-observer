@@ -2,6 +2,7 @@ version: '3'
 
 services:
   app:
-    image: techxtt/contract-observer
+    image: techxtt/contract-observer:2.0.0
     deploy:
       replicas: 3
+      
