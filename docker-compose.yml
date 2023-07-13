@@ -1,15 +1,21 @@
 version: '3'
 
 services:
-  app1:
+  observer1:
     image: techxtt/contract-observer:2.0.0
+    env_file:
+      - ./observer1.env
     deploy:
       replicas: 1
-  app2:
+  observer2:
     image: techxtt/contract-observer:2.0.0
+    env_file:
+      - ./observer2.env
     deploy:
       replicas: 1
-  app3:
+  observer3:
     image: techxtt/contract-observer:2.0.0
+    env_file:
+      - ./observer3.env
     deploy:
       replicas: 1
