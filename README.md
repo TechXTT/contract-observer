@@ -47,6 +47,10 @@ What's all the bells and whistles this project can perform?
 - Listens to Lock events on a contract
 - Votes on Lock events
 
+#### Flow Chart of the Observer
+
+![Flow Chart](assets/Observer_flow_chart.png)
+
 ## Links
 
 Even though this information can be found inside the project on machine-readable
