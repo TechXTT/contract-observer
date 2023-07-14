@@ -2,19 +2,19 @@ version: '3'
 
 services:
   observer1:
-    image: techxtt/contract-observer:2.0.0
+    image: techxtt/contract-observer:1.0.0
     env_file:
       - ./observer1.env
     deploy:
       replicas: 1
   observer2:
-    image: techxtt/contract-observer:2.0.0
+    image: techxtt/contract-observer:1.0.0
     env_file:
       - ./observer2.env
     deploy:
       replicas: 1
   observer3:
-    image: techxtt/contract-observer:2.0.0
+    image: techxtt/contract-observer:1.0.0
     env_file:
       - ./observer3.env
     deploy:
