@@ -16,9 +16,12 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-type LockEvent struct {
+type VoteData struct {
+	TxHash      common.Hash
+	Executor    common.Address
 	Amount      *big.Int
-	TargetChain *big.Int
+	AssetID     uint16
+	SourceChain *big.Int
 }
 
 func SubscribeToEvents(c *ethclient.Client, contractAddress common.Address, logs chan<- types.Log, contractABI abi.ABI) (ethereum.Subscription, error) {
@@ -36,31 +39,41 @@ func SubscribeToEvents(c *ethclient.Client, contractAddress common.Address, logs
 	return subscription, nil
 }
 
-func DecodeEvent(contractABI abi.ABI, vLog types.Log) (LockEvent, error) {
+func DecodeEvent(client *ethclient.Client, contractABI abi.ABI, vLog types.Log) (VoteData, error) {
 	event := contractABI.Events["Lock"]
 
 	lockEventMap := make(map[string]interface{})
 	err := contractABI.UnpackIntoMap(lockEventMap, event.Name, vLog.Data)
 	if err != nil {
-		return LockEvent{}, err
+		return VoteData{}, err
 	}
 
 	amount, ok := lockEventMap["amount"].(*big.Int)
 	if !ok {
-		return LockEvent{}, err
+		return VoteData{}, err
 	}
 
-	targetChain, ok := lockEventMap["targetChain"].(*big.Int)
-	if !ok {
-		return LockEvent{}, err
+	txHash := vLog.TxHash
+
+	assetID64 := vLog.Topics[1].Big().Uint64()
+	assetID := uint16(assetID64)
+
+	sourceChain, err := client.NetworkID(context.Background())
+	if err != nil {
+		return VoteData{}, err
 	}
 
-	lockEvent := LockEvent{
+	user := common.HexToAddress(vLog.Topics[2].Hex())
+
+	voteData := VoteData{
+		TxHash:      txHash,
+		Executor:    user,
 		Amount:      amount,
-		TargetChain: targetChain,
+		AssetID:     assetID,
+		SourceChain: sourceChain,
 	}
 
-	return lockEvent, nil
+	return voteData, nil
 
 }
 
@@ -102,33 +115,21 @@ func RunSubscription(client *ethclient.Client, contractAddress common.Address, c
 		case err := <-subscription.Err():
 			log.Fatal(err)
 		case vLog := <-logs:
-			data, err := DecodeEvent(contractABI, vLog)
+			data, err := DecodeEvent(client, contractABI, vLog)
 			if err != nil {
 				log.Fatal(err)
 				continue
 			}
 
 			fmt.Println("----------------------------------------")
-			txHash := vLog.TxHash
 
-			assetID64 := vLog.Topics[1].Big().Uint64()
-			assetID := uint16(assetID64)
-
-			sourceChain, err := client.NetworkID(context.Background())
-			if err != nil {
-				log.Fatal(err)
-				continue
-			}
-
-			user := common.HexToAddress(vLog.Topics[2].Hex())
-
-			fmt.Println("txHash: ", txHash.Hex())
-			fmt.Println("executor: ", user.Hex())
+			fmt.Println("txHash: ", data.TxHash.Hex())
+			fmt.Println("executor: ", data.Executor.Hex())
 			fmt.Println("amount:", data.Amount)
-			fmt.Println("assetID: ", assetID)
-			fmt.Println("sourceChain: ", sourceChain.String())
+			fmt.Println("assetID: ", data.AssetID)
+			fmt.Println("sourceChain: ", data.SourceChain)
 
-			err = boundContract.Call(&callOpts, nil, "vote", txHash, user, data.Amount, assetID, sourceChain)
+			err = boundContract.Call(&callOpts, nil, "vote", data.TxHash, data.Executor, data.Amount, data.AssetID, data.SourceChain)
 			if err != nil {
 				log.Fatal(err)
 			}
