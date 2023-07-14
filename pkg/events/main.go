@@ -18,7 +18,6 @@ import (
 
 type LockEvent struct {
 	Amount      *big.Int
-	User        common.Address
 	TargetChain *big.Int
 }
 
@@ -51,11 +50,6 @@ func DecodeEvent(contractABI abi.ABI, vLog types.Log) (LockEvent, error) {
 		return LockEvent{}, err
 	}
 
-	user, ok := lockEventMap["user"].(common.Address)
-	if !ok {
-		return LockEvent{}, err
-	}
-
 	targetChain, ok := lockEventMap["targetChain"].(*big.Int)
 	if !ok {
 		return LockEvent{}, err
@@ -63,7 +57,6 @@ func DecodeEvent(contractABI abi.ABI, vLog types.Log) (LockEvent, error) {
 
 	lockEvent := LockEvent{
 		Amount:      amount,
-		User:        user,
 		TargetChain: targetChain,
 	}
 
@@ -100,6 +93,10 @@ func RunSubscription(client *ethclient.Client, contractAddress common.Address, c
 		From:    common.HexToAddress(os.Getenv("OBSERVER_ADDRESS")),
 	}
 
+	fmt.Println("Observer address: ", callOpts.From.Hex())
+
+	fmt.Println("Subscription started:")
+
 	for {
 		select {
 		case err := <-subscription.Err():
@@ -114,8 +111,8 @@ func RunSubscription(client *ethclient.Client, contractAddress common.Address, c
 			fmt.Println("----------------------------------------")
 			txHash := vLog.TxHash
 
-			assetID := new(big.Int)
-			assetID.SetString(vLog.Topics[1].Hex(), 0)
+			assetID64 := vLog.Topics[1].Big().Uint64()
+			assetID := uint16(assetID64)
 
 			sourceChain, err := client.NetworkID(context.Background())
 			if err != nil {
@@ -123,13 +120,15 @@ func RunSubscription(client *ethclient.Client, contractAddress common.Address, c
 				continue
 			}
 
+			user := common.HexToAddress(vLog.Topics[2].Hex())
+
 			fmt.Println("txHash: ", txHash.Hex())
-			fmt.Println("executor: ", data.User.Hex())
+			fmt.Println("executor: ", user.Hex())
 			fmt.Println("amount:", data.Amount)
 			fmt.Println("assetID: ", assetID)
 			fmt.Println("sourceChain: ", sourceChain.String())
 
-			err = boundContract.Call(&callOpts, nil, "vote", txHash, data.User, data.Amount, assetID, sourceChain)
+			err = boundContract.Call(&callOpts, nil, "vote", txHash, user, data.Amount, assetID, sourceChain)
 			if err != nil {
 				log.Fatal(err)
 			}
